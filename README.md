@@ -1,8 +1,14 @@
 # MEMIC
 
 Django version>=3.0\
-pip install pillow\
+```
+pip install pillow
 pip install django-bootstrap4
+pip install pytube
+pip install librosa
+pip install soundfile
+pip install pydub
+```
 
 --------
 
