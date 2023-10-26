@@ -55,6 +55,7 @@ def youtube(request):
         y = y[start:end]
         soundfile.write(new_file, y, sr)
 
+        # extracting voice and accompaniment
         path = os.path.dirname(new_file)
         file_name = os.path.basename(new_file)
         stems = str(input('stems 선택 : 2, 4, 5 >>> '))

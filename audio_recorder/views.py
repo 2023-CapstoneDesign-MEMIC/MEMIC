@@ -1,7 +1,10 @@
 from django import http
 from django.views.generic.base import View
+from django.shortcuts import render, redirect, HttpResponse
 
-
+class indexView(View):
+    def get(self, request):
+        return render(request, 'record.html')
 class AudioFileCreateViewMixin(View):
     model = None
     create_field = None

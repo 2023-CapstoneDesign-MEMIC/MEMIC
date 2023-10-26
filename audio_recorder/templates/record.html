@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+
+  <!-- // RecordRTC 라이브러리 로드
+  // import RecordRTC from 'recordrtc'; -->
+    <script src="https://www.WebRTC-Experiment.com/RecordRTC.js"></script>
+
+    <script>
+
+    let audioRecorder;
+
+    function start(){
+
+
+      // getUserMedia로 오디오 스트림(나의 음성) 가져오기
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(function (stream) {
+
+          // 오디오 스트림을 녹음하기 위한 RecordRTC 객체 생성
+          audioRecorder = RecordRTC(stream, {
+            type: 'audio',
+            mimeType: 'audio/raw',
+            recorderType: StereoAudioRecorder,
+            // mono
+            numberOfAudioChannels: 1,
+            desiredSampRate: 16000,
+            bufferSize: 16384,
+          });
+
+          // 녹음 시작
+          audioRecorder.startRecording();
+
+      })
+      .catch(function (error) {
+        console.error('getUserMedia error:', error);
+      });
+
+    }
+
+  function recordStop(){
+
+    console.log("stop")
+    // 녹음 중지
+    audioRecorder.stopRecording(function() {
+        console.log("stopRecording")
+        // 녹음된 오디오 데이터를 Blob 객체로 가져오기
+		let audioBlob = audioRecorder.getBlob();
+        const url = window.URL.createObjectURL(audioBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'example';
+        // 파일 다운로드
+        a.click();
+        setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        }, 100);
+
+      });
+
+
+  }
+
+    </script>
+
+
+    <button onclick="start()">시작</button>
+    <button onclick="recordStop()">중지</button>
+
+</body>
+</html>
