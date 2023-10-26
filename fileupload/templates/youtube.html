@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h1>Youtube video downloader</h1>
+
+
+<form action="" method="post">
+  {% csrf_token %}
+
+  <label for="link">Enter URL:</label>
+  <input type="text" id="link" name="link"><br><br>
+  <label for="start">Enter start point:</label>
+  <input type="text" id="start" name="start"><br><br>
+  <label for="end">Enter end point:</label>
+  <input type="text" id="end" name="end"><br><br>
+  <input type="submit" value="Submit">
+</form>
+
+</body>
+</html>
