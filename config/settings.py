@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'bootstrap4',
     'fileupload',
     'audio_recorder',
+    'formant_analyse',
 ]
 
 MIDDLEWARE = [

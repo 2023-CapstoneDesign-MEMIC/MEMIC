@@ -25,4 +25,5 @@ urlpatterns = [
     path('pybo/', views.index),
     path('', include('fileupload.urls')),
     path('', include('audio_recorder.urls')),
+    path('', include('formant_analyse.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
