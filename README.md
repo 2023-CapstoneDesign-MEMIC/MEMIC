@@ -10,7 +10,6 @@ pip install soundfile
 pip install pydub
 ```
 
-<<<<<<< HEAD
 로컬 파일 올리기 > http://127.0.0.1:8000/fileupload <p>
 유튜브 따오기 > http://127.0.0.1:8000/fileupload/youtube <p>
 관리자 > http://127.0.0.1:8000/admin
