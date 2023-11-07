@@ -58,9 +58,9 @@ def youtube(request):
         # extracting voice and accompaniment
         path = os.path.dirname(new_file)
         file_name = os.path.basename(new_file)
-        stems = str(input('stems 선택 : 2, 4, 5 >>> '))
+        #stems = str(input('stems 선택 : 2, 4, 5 >>> '))
 
-        #stems = '2'
+        stems = '2'
 
         nsfile_name = file_name.replace(' ', '_')
         try:
@@ -77,6 +77,7 @@ def youtube(request):
         # converting wav -> mp3
         # returning HTML page
         return render(request, 'youtube.html')
+
     return render(request, 'youtube.html')
 
 
