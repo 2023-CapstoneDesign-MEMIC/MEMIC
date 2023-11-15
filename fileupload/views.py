@@ -9,18 +9,20 @@ import os
 from django.contrib import messages
 from wsgiref.util import FileWrapper
 
+import json
+from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from .forms import DocumentForm
 
 def fileUpload(request):
     if request.method == 'POST':
-        title = request.POST['title']
-        content = request.POST['content']
-        img = request.FILES["imgfile"]
-        fileupload = FileUpload(
-            title=title,
-            content=content,
-            imgfile=img,
-        )
-        fileupload.save()
+        file = request.POST['audiofile']
+        start = request.POST['start']
+        end = request.FILES["end"]
+        y, sr = librosa.load(file)
+        y = y[start*sr:end*sr]
+        soundfile.write(file, y, sr)
         return redirect('fileupload')
     else:
         fileuploadForm = FileUploadForm
@@ -28,8 +30,6 @@ def fileUpload(request):
             'fileuploadForm': fileuploadForm,
         }
         return render(request, 'fileupload.html', context)
-
-
 def youtube(request):
     # checking whether request.method is post or not
     if request.method == 'POST':

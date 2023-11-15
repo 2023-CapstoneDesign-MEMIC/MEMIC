@@ -2,7 +2,7 @@
 
 Django version>=3.0\
 ```
-pip install pillow django-bootstrap4 pytube librosa soundfile pydub parselmouth spleeter
+pip install pillow django-bootstrap4 pytube librosa soundfile pydub praat-parselmouth spleeter
 ```
 
 로컬 파일 올리기 > http://127.0.0.1:8000/fileupload <p>
