@@ -13,23 +13,39 @@ import json
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-from .forms import DocumentForm
-
+# from .forms import DocumentForm
 def fileUpload(request):
     if request.method == 'POST':
-        file = request.POST['audiofile']
-        start = request.POST['start']
-        end = request.FILES["end"]
-        y, sr = librosa.load(file)
-        y = y[start*sr:end*sr]
-        soundfile.write(file, y, sr)
-        return redirect('fileupload')
+        form = FileUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            audio_file = form.cleaned_data['audiofile']
+            start = form.cleaned_data['start']
+            end = form.cleaned_data['end']
+            y, sr = librosa.load(audio_file)
+            print(audio_file)
+            print(start)
+            print(end)
+            print(y)
+            print(sr)
+            y = y[start * sr:end * sr]
+            current_directory = os.path.dirname(os.path.abspath(__file__))
+            processed_file_path = os.path.join(current_directory, 'processed_audio.wav')
+            soundfile.write(processed_file_path, y, sr)
+            return HttpResponse('Audio processing complete. Processed file saved at {}'.format(processed_file_path))
+            # try:
+            #     y, sr = librosa.load(audio_file)
+            #     y = y[int(start * sr):int(end * sr)]
+            #     current_directory = os.path.dirname(os.path.abspath(__file__))
+            #     processed_file_path = os.path.join(current_directory, 'processed_audio.wav')
+            #     soundfile.write(processed_file_path, y, sr)
+            #     return HttpResponse('Audio processing complete. Processed file saved at {}'.format(processed_file_path))
+            # except Exception as e:
+            #     # Handle exceptions, e.g., if librosa fails to load the file
+            #     return HttpResponse(f'Error processing audio dsfsdfsdfsdf: {str(e)}', status=500)
     else:
-        fileuploadForm = FileUploadForm
-        context = {
-            'fileuploadForm': fileuploadForm,
-        }
-        return render(request, 'fileupload.html', context)
+        form = FileUploadForm()
+
+    return render(request, 'fileupload.html', {'form': form})
 def youtube(request):
     # checking whether request.method is post or not
     if request.method == 'POST':
@@ -48,8 +64,6 @@ def youtube(request):
 
         # cutting audio
         y, sr = librosa.load(new_file)
-        start = float(start)
-        end = float(end)
         start = int(start * sr)
         end = int(end * sr)
         y = y[start:end]
@@ -79,6 +93,5 @@ def youtube(request):
         return render(request, 'youtube.html')
 
     return render(request, 'youtube.html')
-
 
 
