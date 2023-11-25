@@ -16,6 +16,9 @@ def compute_similarity(y1, sr1, y2, sr2):
     mfcc1 = librosa.feature.mfcc(y=y1, sr=sr1)
     mfcc2 = librosa.feature.mfcc(y=y2, sr=sr2)
 
+    mfcc1 = mfcc1.T
+    mfcc2 = mfcc2.T
+
     # y1, y2(time sequence)에 대한 enumrated index의 mfcc값 DTW, 즉 dtwSeq는 (y1, y2)로 이루어진 배열
     dtwDist, dtwSeq = fastdtw(mfcc1, mfcc2)
     # 코사인 유사도 계산
