@@ -2,14 +2,21 @@ from django.shortcuts import render
 
 import librosa
 import librosa.display
-import matplotlib
-import matplotlib.pyplot as plt
 from fastdtw import fastdtw
 import pandas as pd
 import numpy as np
 import parselmouth
-from scipy.spatial.distance import euclidean
+from sklearn.neighbors import KNeighborsClassifier, KDTree
 from sklearn.metrics.pairwise import cosine_similarity
+
+# row 생략 없이 출력
+pd.set_option('display.max_rows', None)
+# col 생략 없이 출력
+pd.set_option('display.max_columns', None)
+formantVowelData = pd.read_csv('becker_train_data.csv', sep='\t')
+
+for col in ['f1', 'f2', 'f3']:
+    formantVowelData[col].fillna(formantVowelData.groupby('vowel')[col].transform('mean'), inplace=True)
 
 # mfcc기반 유사도 점수 계산 함수
 def compute_similarity(y1, sr1, y2, sr2):
@@ -45,8 +52,17 @@ def compute_similarity(y1, sr1, y2, sr2):
 
     return dtwDist, dtwSeq, combined_similarity_percent
 
-def feedback():
-    return 0
+def l2m(l):
+    return np.array(l).reshape(1, -1)
+
+def analyse_formants(fa):
+    formant_tree = KDTree(formantVowelData[['f1', 'f2', 'f3']])
+    formant_classifier = KNeighborsClassifier(7)
+    formant_classifier.fit(X=formantVowelData[['f1', 'f2', 'f3']], y=formantVowelData['vowel'])
+
+    newdata = l2m([fa[0], fa[1], fa[2]])
+    result = formant_classifier.predict(newdata)[0]
+    return result
 
 # 메인 함수
 def FormantAnalys(request):
@@ -129,8 +145,38 @@ def FormantAnalys(request):
     print(data)
     # print(data)
     # 가장 유사도가 낮은 n개의 행 데이터
-    poor = data.nsmallest(n=30, columns='score', keep='all')
+    poor = data.nsmallest(n=3, columns='score', keep='all')
     print(poor)
+
+    sourceVowel = []
+    userVowel = []
+    for i in range(3):
+        sourceFA =[]
+        userFA = []
+        for j in (["sF1", "sF2", "sF3"]):
+            formant_temp = poor.iloc[i][j]
+            sourceFA.append(formant_temp)
+        for j in (["uF1", "uF2", "uF3"]):
+            formant_temp = poor.iloc[i][j]
+            userFA.append(formant_temp)
+
+        sourceVowel.append(analyse_formants(sourceFA))
+        userVowel.append(analyse_formants(userFA))
+
+        #print(sourceVowel, userVowel)
+
+    for i in range(3):
+        print(i+1, "순위 Feedback")
+        print("시간 : ", poor.iloc[i]["sTimes"], "초에서")
+        print("소스의 발음 : ", sourceVowel[i])
+        print("유저의 발음 : ", userVowel[i])
+
+    # STT > 오류 발생 잦음... 특히 성대모사의 경우 발음이 뭉개지는 등의 경우가 많아
+    # r = sr.Recognizer()
+    # stt = sr.AudioFile(audio_file2)
+    # with stt as source:
+    #     sttAudio = r.record(source)
+    # r.recognize_google(audio_data=sttAudio, language='ko-KR')
 
     # 아래의 변수들 "JSON" 형태로 return
     # combined_similarity_percent_ALL, combined_similarity_percent_P1
