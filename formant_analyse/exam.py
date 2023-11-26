@@ -16,30 +16,46 @@ pd.set_option('display.max_rows', None)
 # col 생략 없이 출력
 pd.set_option('display.max_columns', None)
 
-def compute_mfcc(yk, srk):
-    mfcc = librosa.feature.mfcc(y=yk, sr=srk)
-    return mfcc.T
+# def compute_mfcc(yk, srk):
+#     mfcc = librosa.feature.mfcc(y=yk, sr=srk)
+#     return mfcc.T
 
 def compute_similarity(y1, sr1, y2, sr2):
-    mfcc1 = compute_mfcc(y1, sr1)
-    mfcc2 = compute_mfcc(y2, sr2)
+    mfcc1 = librosa.feature.mfcc(y=y1, sr=sr1)
+    mfcc2 = librosa.feature.mfcc(y=y2, sr=sr2)
+
+    mfcc1 = mfcc1.T
+    mfcc2 = mfcc2.T
 
     # y1, y2(time sequence)에 대한 enumrated index의 mfcc값 DTW, 즉 dtwSeq는 (y1, y2)로 이루어진 배열
     dtwDist, dtwSeq = fastdtw(mfcc1, mfcc2)
 
-    # #print(dtwSeq)
-    # for d in dtwSeq:
-    #     print(d)
-    #     print(sr1*d[0] + sr1 )
-    #     print(mfcc1[d[0]], mfcc2[d[1]])
+    cosine_sim = cosine_similarity(mfcc1, mfcc2)
 
-    combined_similarity_percent = 0
+    # 유클리드 거리 계산
+    euclidean_dist = np.linalg.norm(mfcc1 - mfcc2)
+
+    # DTW 거리를 비교 데이터 길이에 따라 정규화하여 백분율로 표시
+    max_length = max(len(mfcc1), len(mfcc2))
+    # 미사용
+    normalized_dtw_distance = (1 - dtwDist / max_length) * 100
+
+    # 코사인 유사도를 백분율로 표시
+    cosine_similarity_percent = np.mean(cosine_sim) * 100
+
+    # 유클리드 거리를 최대 길이에 대한 비율로 정규화하여 백분율로 표시
+    max_euclidean_dist = max_length * max_length
+    normalized_euclidean_distance = (1 - euclidean_dist / max_euclidean_dist) * 100
+
+    # 유클리드 거리와 코사인 유사도를 가중 평균하여 종합적인 유사성을 백분율로 표시
+    alpha = 0.5  # 가중치 (0에서 1 사이의 값)
+    combined_similarity_percent = (alpha * normalized_euclidean_distance + (1 - alpha) * cosine_similarity_percent)
+
     return dtwDist, dtwSeq, combined_similarity_percent
 
 audio_file1 = 'sourceVocal.wav'
 audio_file2 = 'userVocal.wav'
 
-#sound1 = parselmouth.Sound(audio_file1)
 sound1 = parselmouth.Sound(audio_file1)
 sound2 = parselmouth.Sound(audio_file2)
 
@@ -51,25 +67,24 @@ distance, path, similarity_ALL = compute_similarity(y1, sr1, y2, sr2)
 formant_array1 = []
 formant_array2 = []
 
-data1 = pd.DataFrame({
+print("ALL SCORE: ", similarity_ALL)
+
+data = pd.DataFrame({
     "times": [],
-    "OG times": [],
-    "F0(pitch)": [],
-    "F1": [],
-    "F2": [],
-    'F3': [],
-    "filename": []
+    "sTimes": [],
+    "uTimes": [],
+    "sF0": [],
+    "sF1": [],
+    "sF2": [],
+    'sF3': [],
+    "uF0": [],
+    "uF1": [],
+    "uF2": [],
+    'uF3': [],
+    'score': []
 })
 
-data2 = pd.DataFrame({
-    "times": [],
-    "OG times": [],
-    "F0(pitch)": [],
-    "F1": [],
-    "F2": [],
-    'F3': [],
-    "filename": []
-})
+idxnum = 0
 
 for mapped in path:
     # DTW 결과에서 가져온 idx1 : sourceVocal.wav의 인덱스, idx2 : userVocal.wav의 인덱스
@@ -87,38 +102,35 @@ for mapped in path:
     formant1 = mapped_sound1.to_formant_burg(time_step=0.1)
     formant2 = mapped_sound2.to_formant_burg(time_step=0.1)
 
+    mapped_y1, mapped_sr1 = librosa.load(audio_file1, offset=time_audio1, duration=0.1)
+    mapped_y2, mapped_sr2 = librosa.load(audio_file2, offset=time_audio2, duration=0.1)
+
+    _d1, _d2, mapped_score = compute_similarity(mapped_y1, mapped_sr1, mapped_y2, mapped_sr2)
+
     # pitch 추출
     pitch1 = mapped_sound1.to_pitch()
     pitch2 = mapped_sound2.to_pitch()
 
-    df1 = pd.DataFrame({"times": formant1.ts()})
-    df2 = pd.DataFrame({"times": formant2.ts()})
+    df = pd.DataFrame({"times": formant1.ts()}, index=[idxnum])
+    idxnum+=1
+    df["sTimes"] = time_audio1
+    df["uTimes"] = time_audio2
 
-    #print(f"Audio 1 Time: {time_audio1}, Audio 2 Time: {time_audio2}")
-    df1['OG times'] = time_audio1
-    df2['OG times'] = time_audio2
-    # F1~F3까지 계산
-    for idx, col in enumerate(["F1", "F2", "F3"], 1):
-        df1[col] = df1['times'].map(lambda x: formant1.get_value_at_time(formant_number=idx, time=x))
-        df2[col] = df2['times'].map(lambda x: formant1.get_value_at_time(formant_number=idx, time=x))
+    df['sF0'] = df['times'].map(lambda x: pitch1.get_value_at_time(time=x))
+    df['uF0'] = df['times'].map(lambda x: pitch2.get_value_at_time(time=x))
 
-    df1['F0(pitch)'] = df1['times'].map(lambda x: pitch1.get_value_at_time(time=x))
-    df1['filename'] = "sourceVocal.wav"
-    df2['F0(pitch)'] = df2['times'].map(lambda x: pitch2.get_value_at_time(time=x))
-    df2['filename'] = "userVocal.wav"
+    for idx, col in enumerate(["sF1", "sF2", "sF3"], 1):
+        df[col] = df['times'].map(lambda x: formant1.get_value_at_time(formant_number=idx, time=x))
+    for idx, col in enumerate(["uF1", "uF2", "uF3"], 1):
+        df[col] = df['times'].map(lambda x: formant2.get_value_at_time(formant_number=idx, time=x))
 
-    # data1 = data1.append(df1)
-    # data2 = data2.append(df2)
+    df['score'] = mapped_score
+    data = pd.concat([data, df])
 
-    data1 = pd.concat([data1, df1])
-    data2 = pd.concat([data2, df2])
-
-    #print(formant1, formant2)
-    #print(formant1.ts())
-    #print(formant1.get_value_at_time(formant_number="F1", time=0.1))
-    # formant_array1.append(formant1)
-    # formant_array2.append(formant2)
-
-#
-print(data1)
-print(data2)
+# 결측값 제거
+data = data.dropna(axis=0)
+print(data)
+#print(data)
+# 가장 유사도가 낮은 n개의 행 데이터
+poor = data.nsmallest(n=30, columns='score',keep='all')
+print(poor)

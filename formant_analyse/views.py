@@ -21,7 +21,7 @@ def compute_similarity(y1, sr1, y2, sr2):
 
     # y1, y2(time sequence)에 대한 enumrated index의 mfcc값 DTW, 즉 dtwSeq는 (y1, y2)로 이루어진 배열
     dtwDist, dtwSeq = fastdtw(mfcc1, mfcc2)
-    # 코사인 유사도 계산
+
     cosine_sim = cosine_similarity(mfcc1, mfcc2)
 
     # 유클리드 거리 계산
@@ -29,6 +29,7 @@ def compute_similarity(y1, sr1, y2, sr2):
 
     # DTW 거리를 비교 데이터 길이에 따라 정규화하여 백분율로 표시
     max_length = max(len(mfcc1), len(mfcc2))
+    # 미사용
     normalized_dtw_distance = (1 - dtwDist / max_length) * 100
 
     # 코사인 유사도를 백분율로 표시
@@ -42,73 +43,22 @@ def compute_similarity(y1, sr1, y2, sr2):
     alpha = 0.5  # 가중치 (0에서 1 사이의 값)
     combined_similarity_percent = (alpha * normalized_euclidean_distance + (1 - alpha) * cosine_similarity_percent)
 
-    # 결과 출력
-    print("Normalized DTW Distance (in %):", normalized_dtw_distance)
-    print("Cosine Similarity (in %):", cosine_similarity_percent)
-    print("Normalized Euclidean Distance (in %):", normalized_euclidean_distance)
-    print("Combined Similarity (in %):", combined_similarity_percent)
-
-    return dtwSeq, dtwDist, combined_similarity_percent
-
-# 두 개의 Sound에서 포먼트 추출 함수
-def compute_formantburg(sound1, sound2):
-    data1 = pd.DataFrame({
-        "times": [],
-        "F0(pitch)": [],
-        "F1": [],
-        "F2": [],
-        'F3': [],
-        "filename": []
-    })
-
-    data2 = pd.DataFrame({
-        "times": [],
-        "F0(pitch)": [],
-        "F1": [],
-        "F2": [],
-        'F3': [],
-        "filename": []
-    })
-
-    # 'sourceVocal.wav'의 formant 출력 코드
-    formant1 = sound1.to_formant_burg(time_step=0.1)
-
-    # 'userVocal.wav'의 formant 출력 코드
-    formant2 = sound2.to_formant_burg(time_step=0.1)
-
-    # Pitch
-    pitch1 = sound1.to_pitch()
-    pitch2 = sound2.to_pitch()
-    df1 = pd.DataFrame({"times": formant1.ts()})
-    df2 = pd.DataFrame({"times": formant2.ts()})
-
-    # F1~F3까지 계산
-    for idx, col in enumerate(["F1", "F2", "F3"], 1):
-        df1[col] = df1['times'].map(lambda x: formant1.get_value_at_time(formant_number=idx, time=x))
-        df2[col] = df2['times'].map(lambda x: formant1.get_value_at_time(formant_number=idx, time=x))
-
-    df1['F0(pitch)'] = df1['times'].map(lambda x: pitch1.get_value_at_time(time = x))
-    df1['filename'] = "sourceVocal.wav"
-    df2['F0(pitch)'] = df2['times'].map(lambda x: pitch2.get_value_at_time(time = x))
-    df2['filename'] = "userVocal.wav"
-    data1 = data1.append(df1)
-    data2 = data2.append(df2)
-
-    print(data1)
-    print(data2)
-    print(formant1, formant2)
-
-    return data1, data2
+    return dtwDist, dtwSeq, combined_similarity_percent
 
 def feedback():
     return 0
 
 # 메인 함수
 def FormantAnalys(request):
+    #if request.method == 'POST':
+
     audio_file1 = 'sourceVocal.wav'
     audio_file2 = 'userVocal.wav'
     y1, sr1 = librosa.load(audio_file1)
     y2, sr2 = librosa.load(audio_file2)
+
+    sound1 = parselmouth.Sound("sourceVocal.wav")
+    sound2 = parselmouth.Sound("userVocal.wav")
 
     # dtw 거리, dtw 배열, 전체 구간 유사도
     distance, path, similarity_ALL = compute_similarity(y1, sr1, y2, sr2)
@@ -116,36 +66,71 @@ def FormantAnalys(request):
     # 'sourceVocal.wav'의 parselmouth.Sound 객체 생성 코드
     # 여기서 sound 초기화할 때 DTW로 매핑된 시작지점 - 끝지점으로 잘라서 초기화. << 아이디어 보류
 
-    sound1 = parselmouth.Sound("sourceVocal.wav")
-    sound2 = parselmouth.Sound("userVocal.wav")
+    data = pd.DataFrame({
+        "times": [],
+        "sTimes": [],
+        "uTimes": [],
+        "sF0": [],
+        "sF1": [],
+        "sF2": [],
+        'sF3': [],
+        "uF0": [],
+        "uF1": [],
+        "uF2": [],
+        'uF3': [],
+        'score': []
+    })
 
-    # 각 F1~F3 포먼트
-    f1, f2 = compute_formantburg(sound1, sound2)
+    idxnum = 0
 
-    # TODO : DTW로 맵핑하고, 그 시계열 데이터에 매칭되는 MFCC 유사도 계산한 배열
-    # path == dtw 배열(mfcc index) : [(0, 0), (1, 1), ... , (4, 7)]
-    # y값 활용할 것!
-
-    formant_array1 = []
-    formant_array2 = []
     for mapped in path:
+        # DTW 결과에서 가져온 idx1 : sourceVocal.wav의 인덱스, idx2 : userVocal.wav의 인덱스
         idx1, idx2 = mapped
 
-        mapped_audio1 = y1[idx1]
-        mapped_audio2 = y2[idx2]
+        # 해당 인덱스에 대한 실제 시간.
+        time_audio1 = librosa.frames_to_time(idx1, sr=sr1)
+        time_audio2 = librosa.frames_to_time(idx2, sr=sr2)
 
-        mapped_sound1 = parselmouth.Sound(mapped_audio1)
-        mapped_sound2 = parselmouth.Sound(mapped_audio2)
+        # 그 시간에서 0.1초만큼 컷팅
+        mapped_sound1 = sound1.extract_part(from_time=time_audio1, to_time=time_audio1 + 0.1)
+        mapped_sound2 = sound2.extract_part(from_time=time_audio2, to_time=time_audio2 + 0.1)
 
+        # 0.1초만큼 컷팅한 부분 Formant 추출 -> 0.1초 한 구간의 평균값만 나옴.
         formant1 = mapped_sound1.to_formant_burg(time_step=0.1)
         formant2 = mapped_sound2.to_formant_burg(time_step=0.1)
 
-        formant_array1.append(formant1)
-        formant_array2.append(formant2)
+        mapped_y1, mapped_sr1 = librosa.load(audio_file1, offset=time_audio1, duration=0.1)
+        mapped_y2, mapped_sr2 = librosa.load(audio_file2, offset=time_audio2, duration=0.1)
 
+        _d1, _d2, mapped_score = compute_similarity(mapped_y1, mapped_sr1, mapped_y2, mapped_sr2)
 
-    # TODO : 큰 차이가 난다고 판단하는 기준과 구간 별 피드백 문장 구현 (case)
-    # TODO : STT => 발음 case 작성
+        # pitch 추출
+        pitch1 = mapped_sound1.to_pitch()
+        pitch2 = mapped_sound2.to_pitch()
+
+        df = pd.DataFrame({"times": formant1.ts()}, index=[idxnum])
+        idxnum += 1
+        df["sTimes"] = time_audio1
+        df["uTimes"] = time_audio2
+
+        df['sF0'] = df['times'].map(lambda x: pitch1.get_value_at_time(time=x))
+        df['uF0'] = df['times'].map(lambda x: pitch2.get_value_at_time(time=x))
+
+        for idx, col in enumerate(["sF1", "sF2", "sF3"], 1):
+            df[col] = df['times'].map(lambda x: formant1.get_value_at_time(formant_number=idx, time=x))
+        for idx, col in enumerate(["uF1", "uF2", "uF3"], 1):
+            df[col] = df['times'].map(lambda x: formant2.get_value_at_time(formant_number=idx, time=x))
+
+        df['score'] = mapped_score
+        data = pd.concat([data, df])
+
+    # 결측값 제거
+    data = data.dropna(axis=0)
+    print(data)
+    # print(data)
+    # 가장 유사도가 낮은 n개의 행 데이터
+    poor = data.nsmallest(n=30, columns='score', keep='all')
+    print(poor)
 
     # 아래의 변수들 "JSON" 형태로 return
     # combined_similarity_percent_ALL, combined_similarity_percent_P1
