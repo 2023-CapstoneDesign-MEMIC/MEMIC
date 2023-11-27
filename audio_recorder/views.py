@@ -4,6 +4,13 @@ from django.shortcuts import render, redirect, HttpResponse
 from django.http import JsonResponse
 from django.views import View
 import os
+import boto3
+import soundfile
+from io import BytesIO
+from pydub import AudioSegment
+from botocore.exceptions import NoCredentialsError
+
+AudioSegment.ffmpeg ='/opt/homebrew/bin/ffmpeg'
 class indexView(View):
     def get(self, request):
         return render(request, 'record.html')
@@ -14,34 +21,20 @@ class AudioFileCreateViewMixin(View):
     def create_object(self, audio_file):
         return self.model.objects.create(**{self.create_field: audio_file})
 
-    # def post(self, request):
-    #     audio_file = request.FILES.get('audio_file', None)
-    #     print("asdasd")
-    #     print(audio_file)
-    #     if audio_file is None:
-    #         return http.HttpResponseBadRequest()
-    #     result = self.create_object(audio_file)
-    #     print(result.audio_file.url)
-    #     return http.JsonResponse({
-    #         'id': result.pk,
-    #         'url': result.audio_file.url,
-    #     }, status=201)
-
     def post(self, request, *args, **kwargs):
-        audio_file = request.FILES.get('audio_file', None)
-        if audio_file is None:
-            return JsonResponse({'error': 'No audio file provided'}, status=400)
+        if request.method == 'POST':
+            audio_file = request.FILES.get('audio_file', None)
 
-        # 여기서 파일을 저장하거나 다른 처리를 수행합니다.
-        # 예를 들어, 저장된 파일의 경로를 사용하여 응답을 생성할 수 있습니다.
-        #file_path = '/path/to/uploaded/file'  # 여기에 실제 파일 경로를 넣어주세요.
-        current_directory = os.path.dirname(os.path.abspath(__file__))
-        processed_file_path = os.path.join(current_directory, 'record_audio.wav')
+            # Your S3 configuration
+            access_key = ''
+            secret_key = ''
+            bucket_name = 'memicbucket'
+            s3_file_path = 'RecordingFile/' + audio_file.name
 
-        print()
-        print("asdasdasdfasfnasfaiosdfnjaoijfo")
-        print()
-        print(processed_file_path)
-        print()
-        print()
-        return JsonResponse({'file_path': processed_file_path}, status=201)
+            # Upload file to S3
+            s3 = boto3.client('s3', aws_access_key_id=access_key, aws_secret_access_key=secret_key)
+            s3.upload_fileobj(BytesIO(audio_file.read()), bucket_name, s3_file_path)
+
+            return JsonResponse({'message': 'Upload Successful', 's3_file_path': s3_file_path})
+
+        return JsonResponse({'error': 'Invalid request method'}, status=400)

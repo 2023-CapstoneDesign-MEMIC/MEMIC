@@ -22,8 +22,8 @@ def upload_to_s3(local_file_path, s3_file_path):
     """
     Uploads a file to an S3 bucket
     """
-    access_key = 'access key'
-    secret_key = 'secret key'
+    access_key = 'AKIAV6WWBT6WIRXKUFPA'
+    secret_key = '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'
     bucket_name = 'memicbucket'
 
     # Create an S3 client
