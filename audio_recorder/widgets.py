@@ -4,7 +4,6 @@ from django.forms import HiddenInput
 
 
 class AudioFileWidget(HiddenInput):
-
     class Media:
         js = (
             'audio_recorder/recorder.js',
