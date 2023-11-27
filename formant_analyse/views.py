@@ -55,7 +55,7 @@ def compute_similarity(y1, sr1, y2, sr2):
 def l2m(l):
     return np.array(l).reshape(1, -1)
 
-def analyse_formants(fa):
+def formant_vowel(fa):
     formant_tree = KDTree(formantVowelData[['f1', 'f2', 'f3']])
     formant_classifier = KNeighborsClassifier(7)
     formant_classifier.fit(X=formantVowelData[['f1', 'f2', 'f3']], y=formantVowelData['vowel'])
@@ -63,6 +63,26 @@ def analyse_formants(fa):
     newdata = l2m([fa[0], fa[1], fa[2]])
     result = formant_classifier.predict(newdata)[0]
     return result
+
+def feedback(sV, uV):
+    # vowel 종류 22가지
+    classed = ['a', 'æ', 'ɑ', 'ɒ', 'e', 'ə', 'ɛ', 'ɤ', 'i', 'ɪ', 'ɨ',
+               'o', 'ø', 'œ', 'ɔ', 'ɵ', 'u', 'ɯ', 'ʊ', 'ʌ', 'y', 'ʏ']
+    cnum = enumerate(classed)
+
+    sentence = ""
+    sentence += "따라하려는 음성은 " + str(sV) + " 발음입니다." + '\n'
+    sentence += "사용자님의 음성은 " + str(uV) + " 발음입니다."
+
+    if sV == uV:
+        sentence = ("따라하려는 음성과 사용자님의 음성의 모음 발음이 일치해요! "
+                    + "이 부분에서 점수를 높이려면, 목소리의 굵기와 크기를 조절해보세요.")
+
+    for v in classed:
+        if v == sV:
+            sentence = ""
+
+    return sentence
 
 # 메인 함수
 def FormantAnalys(request):
@@ -98,6 +118,7 @@ def FormantAnalys(request):
     })
 
     idxnum = 0
+    print(similarity_ALL)
 
     for mapped in path:
         # DTW 결과에서 가져온 idx1 : sourceVocal.wav의 인덱스, idx2 : userVocal.wav의 인덱스
@@ -139,14 +160,15 @@ def FormantAnalys(request):
 
         df['score'] = mapped_score
         data = pd.concat([data, df])
+        print(mapped_score)
 
     # 결측값 제거
     data = data.dropna(axis=0)
-    print(data)
+    #print(data)
     # print(data)
     # 가장 유사도가 낮은 n개의 행 데이터
     poor = data.nsmallest(n=3, columns='score', keep='all')
-    print(poor)
+    #print(poor)
 
     sourceVowel = []
     userVowel = []
@@ -160,8 +182,8 @@ def FormantAnalys(request):
             formant_temp = poor.iloc[i][j]
             userFA.append(formant_temp)
 
-        sourceVowel.append(analyse_formants(sourceFA))
-        userVowel.append(analyse_formants(userFA))
+        sourceVowel.append(formant_vowel(sourceFA))
+        userVowel.append(formant_vowel(userFA))
 
         #print(sourceVowel, userVowel)
 
@@ -170,6 +192,14 @@ def FormantAnalys(request):
         print("시간 : ", poor.iloc[i]["sTimes"], "초에서")
         print("소스의 발음 : ", sourceVowel[i])
         print("유저의 발음 : ", userVowel[i])
+
+        # 보고서 최초 기본 안내
+        # "좋은 성대모사는 모음 포먼트 값이 비슷합니다."
+        # "저희는 모음 포먼트 값을 기준으로 보고서를 제공합니다."
+        # "점수를 높게 받았지만 만족스럽지 않다면, 목소리의 굵기나 목소리 크기 차이가 있기 때문입니다."
+        # "모든 부분에서 점수가 높지 않더라도 훌륭한 성대모사가 될 수 있습니다. 따라하려는 목소리의 특징적인 부분만 높은 점수를 받아도 충분합니다."
+        feedback_sentence = feedback(sourceVowel[i], userVowel[i])
+        print(feedback_sentence)
 
     # STT > 오류 발생 잦음... 특히 성대모사의 경우 발음이 뭉개지는 등의 경우가 많아
     # r = sr.Recognizer()
