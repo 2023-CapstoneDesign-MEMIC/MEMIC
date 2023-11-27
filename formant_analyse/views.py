@@ -285,7 +285,7 @@ def FormantAnalys(request):
 
     # 결측값 제거
     data = data.dropna(axis=0)
-    # print(data)
+    #print(data)
     # 가장 유사도가 낮은 n개의 행 데이터
     poor = data.nsmallest(n=3, columns='score', keep='all')
     #print(poor)
@@ -327,13 +327,6 @@ def FormantAnalys(request):
         print("점수 : ", feedback_score[i], "%")
         print(feedback_sentence_ALL[i])
         print("\n")
-
-    # STT > 오류 발생 잦음... 특히 성대모사의 경우 발음이 뭉개지는 등의 경우가 많아
-    # r = sr.Recognizer()
-    # stt = sr.AudioFile(audio_file2)
-    # with stt as source:
-    #     sttAudio = r.record(source)
-    # r.recognize_google(audio_data=sttAudio, language='ko-KR')
 
     # 아래의 변수들 "JSON" 형태로 return
     # similarity_ALL, feedback_time[], feedback_score[], feedback_sentence_ALL[]
