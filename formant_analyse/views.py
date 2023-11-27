@@ -50,7 +50,7 @@ def compute_similarity(y1, sr1, y2, sr2):
     alpha = 0.5  # 가중치 (0에서 1 사이의 값)
     combined_similarity_percent = (alpha * normalized_euclidean_distance + (1 - alpha) * cosine_similarity_percent)
 
-    return dtwDist, dtwSeq, combined_similarity_percent
+    return dtwDist, dtwSeq, combined_similarity_percent, cosine_similarity_percent
 
 def l2m(l):
     return np.array(l).reshape(1, -1)
@@ -218,7 +218,7 @@ def FormantAnalys(request):
     sound2 = parselmouth.Sound("userVocal.wav")
 
     # dtw 거리, dtw 배열, 전체 구간 유사도
-    distance, path, similarity_ALL = compute_similarity(y1, sr1, y2, sr2)
+    distance, path, similarity_ALL, _ = compute_similarity(y1, sr1, y2, sr2)
 
     # 'sourceVocal.wav'의 parselmouth.Sound 객체 생성 코드
     # 여기서 sound 초기화할 때 DTW로 매핑된 시작지점 - 끝지점으로 잘라서 초기화. << 아이디어 보류
@@ -260,7 +260,7 @@ def FormantAnalys(request):
         mapped_y1, mapped_sr1 = librosa.load(audio_file1, offset=time_audio1, duration=0.1)
         mapped_y2, mapped_sr2 = librosa.load(audio_file2, offset=time_audio2, duration=0.1)
 
-        _d1, _d2, mapped_score = compute_similarity(mapped_y1, mapped_sr1, mapped_y2, mapped_sr2)
+        _d1, _d2, _Nonuse, mapped_score = compute_similarity(mapped_y1, mapped_sr1, mapped_y2, mapped_sr2)
 
         # pitch 추출
         pitch1 = mapped_sound1.to_pitch()
@@ -336,8 +336,5 @@ def FormantAnalys(request):
     # r.recognize_google(audio_data=sttAudio, language='ko-KR')
 
     # 아래의 변수들 "JSON" 형태로 return
-    # combined_similarity_percent_ALL, combined_similarity_percent_P1
-    # combined_similarity_percent_P2, combined_similarity_percent_P3
-    # feedback_sentence_P1, feedback_sentence_P2, feedback_sentence_P3
-    # formant_graph_P1, formant_graph_P2, formant_graph_P3
+    # similarity_ALL, feedback_time[], feedback_score[], feedback_sentence_ALL[]
     return render(request, 'formant_analyse.html')
