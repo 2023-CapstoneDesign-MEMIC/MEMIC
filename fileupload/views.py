@@ -8,12 +8,38 @@ from pydub import AudioSegment
 import os
 from django.contrib import messages
 from wsgiref.util import FileWrapper
-
+from django.core.files.storage import default_storage
+from django.http import HttpResponse
+from storages.backends.s3boto3 import S3Boto3Storage
 import json
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 # from .forms import DocumentForm
+import boto3
+from botocore.exceptions import NoCredentialsError
+def upload_to_s3(local_file_path, s3_file_path):
+    """
+    Uploads a file to an S3 bucket
+    """
+    access_key = 'access key'
+    secret_key = 'secret key'
+    bucket_name = 'memicbucket'
+
+    # Create an S3 client
+    s3 = boto3.client('s3', aws_access_key_id=access_key, aws_secret_access_key=secret_key)
+
+    try:
+        s3.upload_file(local_file_path, bucket_name, s3_file_path)
+        print("Upload Successful")
+        return True
+    except FileNotFoundError:
+        print("The file was not found")
+        return False
+    except NoCredentialsError:
+        print("Credentials not available")
+        return False
+
 def fileUpload(request):
     if request.method == 'POST':
         form = FileUploadForm(request.POST, request.FILES)
@@ -22,15 +48,12 @@ def fileUpload(request):
             start = form.cleaned_data['start']
             end = form.cleaned_data['end']
             y, sr = librosa.load(audio_file)
-            print(audio_file)
-            print(start)
-            print(end)
-            print(y)
-            print(sr)
             y = y[start * sr:end * sr]
             current_directory = os.path.dirname(os.path.abspath(__file__))
             processed_file_path = os.path.join(current_directory, 'processed_audio.wav')
             soundfile.write(processed_file_path, y, sr)
+            s3_file_path = 'MyFile/' + os.path.basename(processed_file_path)
+            upload_to_s3(processed_file_path, s3_file_path)
             return HttpResponse('Audio processing complete. Processed file saved at {}'.format(processed_file_path))
             # try:
             #     y, sr = librosa.load(audio_file)
@@ -61,11 +84,13 @@ def youtube(request):
         base, ext = os.path.splitext(downloaded_file)
         new_file = base + '.wav'
         os.rename(downloaded_file, new_file)
-
         # cutting audio
         y, sr = librosa.load(new_file)
-        start = int(start * sr)
-        end = int(end * sr)
+        print(sr)
+        print(start)
+        print(sr*int(start))
+        start = (int(start) * int(sr))
+        end = (int(end) * int(sr))
         y = y[start:end]
         soundfile.write(new_file, y, sr)
 
@@ -83,6 +108,8 @@ def youtube(request):
         except FileNotFoundError:
             pass
 
+        s3_file_path = 'MyFile/' + os.path.basename(new_file)
+        upload_to_s3(path + '/' + nsfile_name, s3_file_path)
         print('기다려주세요.')
         spl = r'spleeter separate -p spleeter:' + \
               str(stems) + r'stems -o output ' + nsfile_name
@@ -93,5 +120,3 @@ def youtube(request):
         return render(request, 'youtube.html')
 
     return render(request, 'youtube.html')
-
-
