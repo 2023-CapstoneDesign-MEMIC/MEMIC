@@ -285,7 +285,6 @@ def FormantAnalys(request):
 
     # 결측값 제거
     data = data.dropna(axis=0)
-    #print(data)
     # print(data)
     # 가장 유사도가 낮은 n개의 행 데이터
     poor = data.nsmallest(n=3, columns='score', keep='all')
@@ -306,21 +305,28 @@ def FormantAnalys(request):
         sourceVowel.append(formant_vowel(sourceFA))
         userVowel.append(formant_vowel(userFA))
 
-        #print(sourceVowel, userVowel)
-
+    feedback_time = []
+    feedback_score = []
+    feedback_sentence_ALL = []
     for i in range(3):
-        print(i+1, "순위 Feedback")
-        print("시간 : ", poor.iloc[i]["sTimes"], "초에서")
-        print("소스의 발음 : ", sourceVowel[i])
-        print("유저의 발음 : ", userVowel[i])
-
+        feedback_time.append(poor.iloc[i]["sTimes"])
+        feedback_score.append(poor.iloc[i]["score"])
         # 보고서 최초 기본 안내
         # "좋은 성대모사는 모음 포먼트 값이 비슷합니다."
         # "저희는 모음 포먼트 값을 기준으로 보고서를 제공합니다."
         # "점수를 높게 받았지만 만족스럽지 않다면, 목소리의 굵기나 목소리 크기 차이가 있기 때문입니다."
         # "모든 부분에서 점수가 높지 않더라도 훌륭한 성대모사가 될 수 있습니다. 따라하려는 목소리의 특징적인 부분만 높은 점수를 받아도 충분합니다."
         feedback_sentence, detail_sentence = feedback(sourceVowel[i], userVowel[i])
-        print(feedback_sentence)
+        feedback_sentence_ALL.append(feedback_sentence+detail_sentence)
+
+    print("전체 유사도 : ", similarity_ALL, "%")
+    print("----------피드백 보고서-----------")
+    for i in range(3):
+        print(i+1, "순위 Feedback")
+        print("시간 : ", feedback_time[i], "초에서")
+        print("점수 : ", feedback_score[i], "%")
+        print(feedback_sentence_ALL[i])
+        print("\n")
 
     # STT > 오류 발생 잦음... 특히 성대모사의 경우 발음이 뭉개지는 등의 경우가 많아
     # r = sr.Recognizer()
