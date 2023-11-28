@@ -109,13 +109,16 @@ def youtube(request):
         except FileNotFoundError:
             pass
 
-        s3_file_path = 'MyFile/' + os.path.basename(new_file)
-        upload_to_s3(path + '/' + nsfile_name, s3_file_path)
+        #s3_file_path = 'MyFile/' + os.path.basename(new_file)
+        s3_file_path = 'MyFile/sourceVocal.wav'
         print('기다려주세요.')
 
-        seperator = Separator('spleeter:2stems')
-        seperator.separate_to_file(nsfile_name, 'C:\projects\mysite\output')
+        nsfile_withoutEx = os.path.splitext(nsfile_name)[0]
+        print(nsfile_withoutEx)
 
+        seperator = Separator('spleeter:2stems')
+        seperator.separate_to_file(nsfile_name, os.getcwd() + '/output')
+        upload_to_s3(os.getcwd() + '/output/' + nsfile_withoutEx + '/vocals.wav', s3_file_path)
         # converting wav -> mp3
         # returning HTML page
         return render(request, 'youtube.html')
