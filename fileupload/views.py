@@ -10,7 +10,7 @@ from django.contrib import messages
 from wsgiref.util import FileWrapper
 from django.core.files.storage import default_storage
 from django.http import HttpResponse
-from storages.backends.s3boto3 import S3Boto3Storage
+#from storages.backends.s3boto3 import S3Boto3Storage
 import json
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt

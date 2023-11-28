@@ -1,5 +1,4 @@
-from django.shortcuts import render
-
+from django.http import JsonResponse
 import librosa
 import librosa.display
 from fastdtw import fastdtw
@@ -207,127 +206,135 @@ def feedback(sV, uV):
 
 # 메인 함수
 def FormantAnalys(request):
-    #if request.method == 'POST':
+    if request.method == 'POST':
 
-    audio_file1 = 'sourceVocal.wav'
-    audio_file2 = 'userVocal.wav'
-    y1, sr1 = librosa.load(audio_file1)
-    y2, sr2 = librosa.load(audio_file2)
+        audio_file1 = 'sourceVocal.wav'
+        audio_file2 = 'userVocal.wav'
+        y1, sr1 = librosa.load(audio_file1)
+        y2, sr2 = librosa.load(audio_file2)
 
-    sound1 = parselmouth.Sound("sourceVocal.wav")
-    sound2 = parselmouth.Sound("userVocal.wav")
+        sound1 = parselmouth.Sound("sourceVocal.wav")
+        sound2 = parselmouth.Sound("userVocal.wav")
 
-    # dtw 거리, dtw 배열, 전체 구간 유사도
-    distance, path, similarity_ALL, _ = compute_similarity(y1, sr1, y2, sr2)
+        # dtw 거리, dtw 배열, 전체 구간 유사도
+        distance, path, similarity_ALL, _ = compute_similarity(y1, sr1, y2, sr2)
 
-    # 'sourceVocal.wav'의 parselmouth.Sound 객체 생성 코드
-    # 여기서 sound 초기화할 때 DTW로 매핑된 시작지점 - 끝지점으로 잘라서 초기화. << 아이디어 보류
+        # 'sourceVocal.wav'의 parselmouth.Sound 객체 생성 코드
+        # 여기서 sound 초기화할 때 DTW로 매핑된 시작지점 - 끝지점으로 잘라서 초기화. << 아이디어 보류
 
-    data = pd.DataFrame({
-        "times": [],
-        "sTimes": [],
-        "uTimes": [],
-        "sF0": [],
-        "sF1": [],
-        "sF2": [],
-        'sF3': [],
-        "uF0": [],
-        "uF1": [],
-        "uF2": [],
-        'uF3': [],
-        'score': []
-    })
+        data = pd.DataFrame({
+            "times": [],
+            "sTimes": [],
+            "uTimes": [],
+            "sF0": [],
+            "sF1": [],
+            "sF2": [],
+            'sF3': [],
+            "uF0": [],
+            "uF1": [],
+            "uF2": [],
+            'uF3': [],
+            'score': []
+        })
 
-    idxnum = 0
-    #print(similarity_ALL)
+        idxnum = 0
+        #print(similarity_ALL)
 
-    for mapped in path:
-        # DTW 결과에서 가져온 idx1 : sourceVocal.wav의 인덱스, idx2 : userVocal.wav의 인덱스
-        idx1, idx2 = mapped
+        for mapped in path:
+            # DTW 결과에서 가져온 idx1 : sourceVocal.wav의 인덱스, idx2 : userVocal.wav의 인덱스
+            idx1, idx2 = mapped
 
-        # 해당 인덱스에 대한 실제 시간.
-        time_audio1 = librosa.frames_to_time(idx1, sr=sr1)
-        time_audio2 = librosa.frames_to_time(idx2, sr=sr2)
+            # 해당 인덱스에 대한 실제 시간.
+            time_audio1 = librosa.frames_to_time(idx1, sr=sr1)
+            time_audio2 = librosa.frames_to_time(idx2, sr=sr2)
 
-        # 그 시간에서 0.1초만큼 컷팅
-        mapped_sound1 = sound1.extract_part(from_time=time_audio1, to_time=time_audio1 + 0.1)
-        mapped_sound2 = sound2.extract_part(from_time=time_audio2, to_time=time_audio2 + 0.1)
+            # 그 시간에서 0.1초만큼 컷팅
+            mapped_sound1 = sound1.extract_part(from_time=time_audio1, to_time=time_audio1 + 0.1)
+            mapped_sound2 = sound2.extract_part(from_time=time_audio2, to_time=time_audio2 + 0.1)
 
-        # 0.1초만큼 컷팅한 부분 Formant 추출 -> 0.1초 한 구간의 평균값만 나옴.
-        formant1 = mapped_sound1.to_formant_burg(time_step=0.1)
-        formant2 = mapped_sound2.to_formant_burg(time_step=0.1)
+            # 0.1초만큼 컷팅한 부분 Formant 추출 -> 0.1초 한 구간의 평균값만 나옴.
+            formant1 = mapped_sound1.to_formant_burg(time_step=0.1)
+            formant2 = mapped_sound2.to_formant_burg(time_step=0.1)
 
-        mapped_y1, mapped_sr1 = librosa.load(audio_file1, offset=time_audio1, duration=0.1)
-        mapped_y2, mapped_sr2 = librosa.load(audio_file2, offset=time_audio2, duration=0.1)
+            mapped_y1, mapped_sr1 = librosa.load(audio_file1, offset=time_audio1, duration=0.1)
+            mapped_y2, mapped_sr2 = librosa.load(audio_file2, offset=time_audio2, duration=0.1)
 
-        _d1, _d2, _Nonuse, mapped_score = compute_similarity(mapped_y1, mapped_sr1, mapped_y2, mapped_sr2)
+            _d1, _d2, _Nonuse, mapped_score = compute_similarity(mapped_y1, mapped_sr1, mapped_y2, mapped_sr2)
 
-        # pitch 추출
-        pitch1 = mapped_sound1.to_pitch()
-        pitch2 = mapped_sound2.to_pitch()
+            # pitch 추출
+            pitch1 = mapped_sound1.to_pitch()
+            pitch2 = mapped_sound2.to_pitch()
 
-        df = pd.DataFrame({"times": formant1.ts()}, index=[idxnum])
-        idxnum += 1
-        df["sTimes"] = time_audio1
-        df["uTimes"] = time_audio2
+            df = pd.DataFrame({"times": formant1.ts()}, index=[idxnum])
+            idxnum += 1
+            df["sTimes"] = time_audio1
+            df["uTimes"] = time_audio2
 
-        df['sF0'] = df['times'].map(lambda x: pitch1.get_value_at_time(time=x))
-        df['uF0'] = df['times'].map(lambda x: pitch2.get_value_at_time(time=x))
+            df['sF0'] = df['times'].map(lambda x: pitch1.get_value_at_time(time=x))
+            df['uF0'] = df['times'].map(lambda x: pitch2.get_value_at_time(time=x))
 
-        for idx, col in enumerate(["sF1", "sF2", "sF3"], 1):
-            df[col] = df['times'].map(lambda x: formant1.get_value_at_time(formant_number=idx, time=x))
-        for idx, col in enumerate(["uF1", "uF2", "uF3"], 1):
-            df[col] = df['times'].map(lambda x: formant2.get_value_at_time(formant_number=idx, time=x))
+            for idx, col in enumerate(["sF1", "sF2", "sF3"], 1):
+                df[col] = df['times'].map(lambda x: formant1.get_value_at_time(formant_number=idx, time=x))
+            for idx, col in enumerate(["uF1", "uF2", "uF3"], 1):
+                df[col] = df['times'].map(lambda x: formant2.get_value_at_time(formant_number=idx, time=x))
 
-        df['score'] = mapped_score
-        data = pd.concat([data, df])
-        #print(mapped_score)
+            df['score'] = mapped_score
+            data = pd.concat([data, df])
+            #print(mapped_score)
 
-    # 결측값 제거
-    data = data.dropna(axis=0)
-    #print(data)
-    # 가장 유사도가 낮은 n개의 행 데이터
-    poor = data.nsmallest(n=3, columns='score', keep='all')
-    #print(poor)
+        # 결측값 제거
+        data = data.dropna(axis=0)
+        #print(data)
+        # 가장 유사도가 낮은 n개의 행 데이터
+        poor = data.nsmallest(n=3, columns='score', keep='all')
+        #print(poor)
 
-    sourceVowel = []
-    userVowel = []
-    for i in range(3):
-        sourceFA =[]
-        userFA = []
-        for j in (["sF1", "sF2", "sF3"]):
-            formant_temp = poor.iloc[i][j]
-            sourceFA.append(formant_temp)
-        for j in (["uF1", "uF2", "uF3"]):
-            formant_temp = poor.iloc[i][j]
-            userFA.append(formant_temp)
+        sourceVowel = []
+        userVowel = []
+        for i in range(3):
+            sourceFA =[]
+            userFA = []
+            for j in (["sF1", "sF2", "sF3"]):
+                formant_temp = poor.iloc[i][j]
+                sourceFA.append(formant_temp)
+            for j in (["uF1", "uF2", "uF3"]):
+                formant_temp = poor.iloc[i][j]
+                userFA.append(formant_temp)
 
-        sourceVowel.append(formant_vowel(sourceFA))
-        userVowel.append(formant_vowel(userFA))
+            sourceVowel.append(formant_vowel(sourceFA))
+            userVowel.append(formant_vowel(userFA))
 
-    feedback_time = []
-    feedback_score = []
-    feedback_sentence_ALL = []
-    for i in range(3):
-        feedback_time.append(poor.iloc[i]["sTimes"])
-        feedback_score.append(poor.iloc[i]["score"])
-        # 보고서 최초 기본 안내
-        # "좋은 성대모사는 모음 포먼트 값이 비슷합니다."
-        # "저희는 모음 포먼트 값을 기준으로 보고서를 제공합니다."
-        # "점수를 높게 받았지만 만족스럽지 않다면, 목소리의 굵기나 목소리 크기 차이가 있기 때문입니다."
-        # "모든 부분에서 점수가 높지 않더라도 훌륭한 성대모사가 될 수 있습니다. 따라하려는 목소리의 특징적인 부분만 높은 점수를 받아도 충분합니다."
-        feedback_sentence, detail_sentence = feedback(sourceVowel[i], userVowel[i])
-        feedback_sentence_ALL.append(feedback_sentence+detail_sentence)
+        feedback_time = []
+        feedback_score = []
+        feedback_sentence_ALL = []
+        for i in range(3):
+            feedback_time.append(poor.iloc[i]["sTimes"])
+            feedback_score.append(poor.iloc[i]["score"])
+            feedback_sentence, detail_sentence = feedback(sourceVowel[i], userVowel[i])
+            feedback_sentence_ALL.append(feedback_sentence+detail_sentence)
 
-    print("전체 유사도 : ", similarity_ALL, "%")
-    print("----------피드백 보고서-----------")
-    for i in range(3):
-        print(i+1, "순위 Feedback")
-        print("시간 : ", feedback_time[i], "초에서")
-        print("점수 : ", feedback_score[i], "%")
-        print(feedback_sentence_ALL[i])
-        print("\n")
+        print("전체 유사도 : ", similarity_ALL, "%")
+        print("----------피드백 보고서-----------")
+        for i in range(3):
+            print(i+1, "순위 Feedback")
+            print("시간 : ", feedback_time[i], "초에서")
+            print("점수 : ", feedback_score[i], "%")
+            print(feedback_sentence_ALL[i])
+            print("\n")
 
+        return JsonResponse({'similarity': similarity_ALL,
+                             '1st_similarity': feedback_score[0],
+                             '1st_time': feedback_time[0],
+                             '1st_sentence': feedback_sentence_ALL[0],
+                             '2nd_similarity': feedback_score[1],
+                             '2nd_time': feedback_time[1],
+                             '2nd_sentence': feedback_sentence_ALL[1],
+                             '3rd_similarity': feedback_score[2],
+                             '3rd_time': feedback_time[2],
+                             '3rd_sentence': feedback_sentence_ALL[2]
+                             })
+
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
     # 아래의 변수들 "JSON" 형태로 return
     # similarity_ALL, feedback_time[], feedback_score[], feedback_sentence_ALL[]
-    return render(request, 'formant_analyse.html')
+    # return render(request, 'formant_analyse.html')
