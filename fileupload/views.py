@@ -1,3 +1,5 @@
+from spleeter.separator import Separator
+from spleeter.audio.adapter import AudioAdapter
 from django.shortcuts import render, redirect, HttpResponse
 from .forms import FileUploadForm
 from .models import FileUpload
@@ -15,9 +17,9 @@ import json
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-# from .forms import DocumentForm
 import boto3
 from botocore.exceptions import NoCredentialsError
+
 def upload_to_s3(local_file_path, s3_file_path):
     """
     Uploads a file to an S3 bucket
@@ -104,16 +106,15 @@ def youtube(request):
         nsfile_name = file_name.replace(' ', '_')
         try:
             os.rename(new_file, path + '/' + nsfile_name)
-            # os.rename(path + file_name, path + nsfile_name)
         except FileNotFoundError:
             pass
 
         s3_file_path = 'MyFile/' + os.path.basename(new_file)
         upload_to_s3(path + '/' + nsfile_name, s3_file_path)
         print('기다려주세요.')
-        spl = r'spleeter separate -p spleeter:' + \
-              str(stems) + r'stems -o output ' + nsfile_name
-        os.system(spl)
+
+        seperator = Separator('spleeter:2stems')
+        seperator.separate_to_file(nsfile_name, 'C:\projects\mysite\output')
 
         # converting wav -> mp3
         # returning HTML page
