@@ -63,7 +63,7 @@ def formant_vowel(fa):
     result = formant_classifier.predict(newdata)[0]
     return result
 
-def feedback(sV, uV):
+def feedback(sV, uV, sF0, uF0):
     """
     1. **Vowel Height (높이)**: Ranges from high (고모음) to low (저모음). It indicates how close the tongue is to the roof of the mouth.
        - 0: Low
@@ -114,7 +114,6 @@ def feedback(sV, uV):
     +면 혀를 앞으로, -면 혀를 뒤로
     +면 입술을 오므리고, -면 입술을 펴고
     """
-
     # vowel 종류 22가지
     classed = ['a', 'æ', 'ɑ', 'ɒ', 'e', 'ə', 'ɛ', 'ɤ', 'i', 'ɪ', 'ɨ',
                'o', 'ø', 'œ', 'ɔ', 'ɵ', 'u', 'ɯ', 'ʊ', 'ʌ', 'y', 'ʏ']
@@ -163,28 +162,46 @@ def feedback(sV, uV):
         movement += "혀의 높이를 더 높게 올리고, "
     elif mapped_vowels[sV][0] - mapped_vowels[uV][0] < 0:
         movement += "혀의 높이를 더 낮게 내리고, "
-    else:
-        movement += "혀의 높이는 그대로 하고, "
+    #else:
+        #movement += "혀의 높이는 그대로 하고, "
 
     if mapped_vowels[sV][1] - mapped_vowels[uV][1] > 0: # 따라하려는 게 혀가 더 앞쪽!
         movement += "혀끝의 위치를 더 앞 쪽으로 옮기고, "
     elif mapped_vowels[sV][1] - mapped_vowels[uV][1] < 0:
         movement += "혀끝의 위치를 더 뒤 쪽으로 옮기고, "
-    else:
-        movement+= "혀끝의 위치는 그대로 하고, "
+    #else:
+        #movement+= "혀끝의 위치는 그대로 하고, "
 
     if mapped_vowels[sV][2] - mapped_vowels[uV][2] > 0:  # 따라하려는 게 원순 나는 평순
-        movement+= "입술을 오므려서 발음하세요."
+        movement+= "입술을 오므려서 발음하고, "
     elif mapped_vowels[sV][2] - mapped_vowels[uV][2] < 0:
-        movement+= "입술을 오므리지 않고 발음하세요."
-    else:
-        movement+= "입술의 모양은 그대로 하고 발음하세요."
+        movement+= "입술을 오므리지 않고 발음하고, "
+    #else:
+        #movement+= "입술의 모양은 그대로 하고 발음하세요."
 
+    pitch = ""
+    if sF0 > uF0:
+        pitch += "피치를 높이기 위해 성대를 조여 높은 음을 내세요.\n"
+    elif sF0 < uF0:
+        pitch += "피치를 낮추기 위해 성대를 풀어 낮은 음을 내세요.\n"
+    # 피치값이 같은 경우는 거의 없으나 비정상값이 들어오거나 희귀 사례가 있을 수 있음.
+    elif sF0 == uF0:
+        pitch += "피치를 조절할 필요는 없습니다.\n"
+
+    # 개괄
     sentence1 = ""
     sentence1 += "따라하려는 음성은 " + sV + " 발음에 가깝고, "
     sentence1 += "사용자님의 음성은 " + uV + " 발음에 가까워요.\n"
 
-    # 높이 / 기울기 / 입술 모양
+    sentence1 += "따라하려는 음성의 피치(pitch)는 " + str(round(sF0, 2)) + "Hz, "
+    sentence1 += "사용자님의 음성의 피치(pitch)는 " + str(round(uF0, 2)) + "Hz입니다.\n"
+
+    # 점수 올리는 방법
+    sentence1 += "더 높은 점수를 얻으려면... "
+    sentence1 += movement
+    sentence1 += pitch
+
+    # 상세 설명
     sentence2 = ""
 
     sentence2 += ("따라하려는 음성의 " + sV + "는 "
@@ -199,15 +216,13 @@ def feedback(sV, uV):
     sentence2 += tongue_slope[mapped_vowels[uV][1]][0] + "으로 분류되며, "
     sentence2 += tongue_slope[mapped_vowels[uV][1]][1] + " 위치한 상태입니다.\n"
 
-    sentence2 += "더 높은 점수를 얻으려면... "
-    sentence2 += movement
+
 
     return sentence1, sentence2
 
 # 메인 함수
 def FormantAnalys(request):
-    if request.method == 'POST':
-
+    if request.method == 'GET':
         audio_file1 = 'sourceVocal.wav'
         audio_file2 = 'userVocal.wav'
         y1, sr1 = librosa.load(audio_file1)
@@ -220,8 +235,6 @@ def FormantAnalys(request):
         distance, path, similarity_ALL, _ = compute_similarity(y1, sr1, y2, sr2)
 
         # 'sourceVocal.wav'의 parselmouth.Sound 객체 생성 코드
-        # 여기서 sound 초기화할 때 DTW로 매핑된 시작지점 - 끝지점으로 잘라서 초기화. << 아이디어 보류
-
         data = pd.DataFrame({
             "times": [],
             "sTimes": [],
@@ -238,7 +251,6 @@ def FormantAnalys(request):
         })
 
         idxnum = 0
-        #print(similarity_ALL)
 
         for mapped in path:
             # DTW 결과에서 가져온 idx1 : sourceVocal.wav의 인덱스, idx2 : userVocal.wav의 인덱스
@@ -280,20 +292,21 @@ def FormantAnalys(request):
 
             df['score'] = mapped_score
             data = pd.concat([data, df])
-            #print(mapped_score)
 
         # 결측값 제거
         data = data.dropna(axis=0)
-        #print(data)
         # 가장 유사도가 낮은 n개의 행 데이터
         poor = data.nsmallest(n=3, columns='score', keep='all')
-        #print(poor)
 
         sourceVowel = []
         userVowel = []
+        sourceF0 = []
+        userF0 = []
         for i in range(3):
             sourceFA =[]
             userFA = []
+            sourceF0.append(poor.iloc[i]["sF0"])
+            userF0.append(poor.iloc[i]["uF0"])
             for j in (["sF1", "sF2", "sF3"]):
                 formant_temp = poor.iloc[i][j]
                 sourceFA.append(formant_temp)
@@ -308,12 +321,12 @@ def FormantAnalys(request):
         feedback_score = []
         feedback_sentence_ALL = []
         for i in range(3):
-            feedback_time.append(poor.iloc[i]["sTimes"])
-            feedback_score.append(poor.iloc[i]["score"])
-            feedback_sentence, detail_sentence = feedback(sourceVowel[i], userVowel[i])
+            feedback_time.append(round(poor.iloc[i]["sTimes"], 2))
+            feedback_score.append(round(poor.iloc[i]["score"], 2))
+            feedback_sentence, detail_sentence = feedback(sourceVowel[i], userVowel[i], sourceF0[i], userF0[i])
             feedback_sentence_ALL.append(feedback_sentence+detail_sentence)
 
-        print("전체 유사도 : ", similarity_ALL, "%")
+        print("전체 유사도 : ", round(similarity_ALL, 2), "%")
         print("----------피드백 보고서-----------")
         for i in range(3):
             print(i+1, "순위 Feedback")
@@ -322,7 +335,7 @@ def FormantAnalys(request):
             print(feedback_sentence_ALL[i])
             print("\n")
 
-        return JsonResponse({'similarity': similarity_ALL,
+        return JsonResponse({'similarity': round(similarity_ALL,2),
                              '1st_similarity': feedback_score[0],
                              '1st_time': feedback_time[0],
                              '1st_sentence': feedback_sentence_ALL[0],
@@ -335,6 +348,3 @@ def FormantAnalys(request):
                              })
 
     return JsonResponse({'error': 'Invalid request method'}, status=400)
-    # 아래의 변수들 "JSON" 형태로 return
-    # similarity_ALL, feedback_time[], feedback_score[], feedback_sentence_ALL[]
-    # return render(request, 'formant_analyse.html')

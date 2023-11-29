@@ -3,6 +3,8 @@
 Django version >= 3.0
 <br> Python version >=3.8 <= 3.10
 
+***연동 및 배포 작업이 진행 중에 있음***
+
 ```
 pip install pillow django-bootstrap4 pytube librosa soundfile pydub praat-parselmouth spleeter boto3 django-storages
 
@@ -23,7 +25,7 @@ pip install django-cors-headers
 3. DTW path 배열로 매핑된 구간 별 Formant 게산
 4. 구간 별 유사도 점수 평가, 유사도 하위 3개 구간 선택
 5. Formant-Vowel 데이터셋을 활용해 K-NN Vowel Classification
-6. 선택된 Vowel에 대한 Feedback
+6. 선택된 Vowel에 대한 Feedback, Pitch에 대한 Feedback
 
 > return 전체 유사도, 유사도 하위 3개 구간(구간 유사도, 시간, 피드백 문장)
 
