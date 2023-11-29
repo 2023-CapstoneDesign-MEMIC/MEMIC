@@ -6,7 +6,7 @@ Django version >= 3.0
 ***연동 및 배포 작업이 진행 중에 있음***
 
 ```
-pip install pillow django-bootstrap4 pytube librosa soundfile pydub praat-parselmouth spleeter boto3 django-storages
+pip install -r requirements.txt
 
 pip install django-cors-headers
 ```
