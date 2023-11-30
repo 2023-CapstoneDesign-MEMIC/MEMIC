@@ -34,7 +34,7 @@ class AudioFileCreateViewMixin(View):
             # Upload file to S3
             s3 = boto3.client('s3', aws_access_key_id=access_key, aws_secret_access_key=secret_key)
             s3.upload_fileobj(BytesIO(audio_file.read()), bucket_name, s3_file_path)
-
+            s3.download_file(bucket_name, s3_file_path, os.getcwd()+'/userVocal.wav')
             return JsonResponse({'message': 'Upload Successful', 's3_file_path': s3_file_path})
 
         return JsonResponse({'error': 'Invalid request method'}, status=400)

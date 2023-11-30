@@ -4,6 +4,7 @@ from django.shortcuts import render, redirect, HttpResponse
 from .forms import FileUploadForm
 from .models import FileUpload
 from pytube import *
+import shutil
 import librosa
 import soundfile
 from pydub import AudioSegment
@@ -52,21 +53,12 @@ def fileUpload(request):
             y, sr = librosa.load(audio_file)
             y = y[start * sr:end * sr]
             current_directory = os.path.dirname(os.path.abspath(__file__))
-            processed_file_path = os.path.join(current_directory, 'processed_audio.wav')
+            directory = os.getcwd()
+            processed_file_path = os.path.join(directory, 'sourceVocal.wav')
             soundfile.write(processed_file_path, y, sr)
-            s3_file_path = 'MyFile/' + os.path.basename(processed_file_path)
-            upload_to_s3(processed_file_path, s3_file_path)
+            # s3_file_path = 'MyFile/' + os.path.basename(processed_file_path)
+            # upload_to_s3(processed_file_path, s3_file_path)
             return HttpResponse('Audio processing complete. Processed file saved at {}'.format(processed_file_path))
-            # try:
-            #     y, sr = librosa.load(audio_file)
-            #     y = y[int(start * sr):int(end * sr)]
-            #     current_directory = os.path.dirname(os.path.abspath(__file__))
-            #     processed_file_path = os.path.join(current_directory, 'processed_audio.wav')
-            #     soundfile.write(processed_file_path, y, sr)
-            #     return HttpResponse('Audio processing complete. Processed file saved at {}'.format(processed_file_path))
-            # except Exception as e:
-            #     # Handle exceptions, e.g., if librosa fails to load the file
-            #     return HttpResponse(f'Error processing audio dsfsdfsdfsdf: {str(e)}', status=500)
     else:
         form = FileUploadForm()
 
@@ -110,7 +102,7 @@ def youtube(request):
             pass
 
         #s3_file_path = 'MyFile/' + os.path.basename(new_file)
-        s3_file_path = 'MyFile/sourceVocal.wav'
+        #s3_file_path = 'MyFile/sourceVocal.wav'
         print('기다려주세요.')
 
         nsfile_withoutEx = os.path.splitext(nsfile_name)[0]
@@ -118,7 +110,11 @@ def youtube(request):
 
         seperator = Separator('spleeter:2stems')
         seperator.separate_to_file(nsfile_name, os.getcwd() + '/output')
-        upload_to_s3(os.getcwd() + '/output/' + nsfile_withoutEx + '/vocals.wav', s3_file_path)
+        directory = os.getcwd()
+        shutil.move(directory + '/output/'+nsfile_withoutEx+'/vocals.wav', os.getcwd() + '/sourceVocal.wav')
+        os.remove(directory + '/' + nsfile_name)
+        shutil.rmtree(directory + '/output/' + nsfile_withoutEx)
+        #upload_to_s3(os.getcwd() + '/output/' + nsfile_withoutEx + '/vocals.wav', s3_file_path)
         # converting wav -> mp3
         # returning HTML page
         return render(request, 'youtube.html')

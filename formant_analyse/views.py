@@ -190,19 +190,20 @@ def feedback(sV, uV, sF0, uF0):
 
     # 개괄
     sentence1 = ""
-    sentence1 += "따라하려는 음성은 " + sV + " 발음에 가깝고, "
-    sentence1 += "사용자님의 음성은 " + uV + " 발음에 가까워요.\n"
-
-    sentence1 += "따라하려는 음성의 피치(pitch)는 " + str(round(sF0, 2)) + "Hz, "
-    sentence1 += "사용자님의 음성의 피치(pitch)는 " + str(round(uF0, 2)) + "Hz입니다.\n"
 
     # 점수 올리는 방법
-    sentence1 += "더 높은 점수를 얻으려면... "
+    sentence1 += "더 높은 점수를 얻으려면, "
     sentence1 += movement
     sentence1 += pitch
 
     # 상세 설명
     sentence2 = ""
+
+    sentence2 += "따라하려는 음성은 " + sV + " 발음에 가깝고, "
+    sentence2 += "사용자님의 음성은 " + uV + " 발음에 가까워요.\n"
+
+    sentence2 += "따라하려는 음성의 피치(pitch)는 " + str(round(sF0, 2)) + "Hz, "
+    sentence2 += "사용자님의 음성의 피치(pitch)는 " + str(round(uF0, 2)) + "Hz입니다.\n"
 
     sentence2 += ("따라하려는 음성의 " + sV + "는 "
                   + tongue_height[mapped_vowels[sV][0]][0] + "으로 분류되며, ")
@@ -319,12 +320,14 @@ def FormantAnalys(request):
 
         feedback_time = []
         feedback_score = []
-        feedback_sentence_ALL = []
+        feedback_sentence_M = []
+        feedback_sentence_D = []
         for i in range(3):
             feedback_time.append(round(poor.iloc[i]["sTimes"], 2))
             feedback_score.append(round(poor.iloc[i]["score"], 2))
             feedback_sentence, detail_sentence = feedback(sourceVowel[i], userVowel[i], sourceF0[i], userF0[i])
-            feedback_sentence_ALL.append(feedback_sentence+detail_sentence)
+            feedback_sentence_M.append(feedback_sentence)
+            feedback_sentence_D.append(detail_sentence)
 
         print("전체 유사도 : ", round(similarity_ALL, 2), "%")
         print("----------피드백 보고서-----------")
@@ -332,19 +335,22 @@ def FormantAnalys(request):
             print(i+1, "순위 Feedback")
             print("시간 : ", feedback_time[i], "초에서")
             print("점수 : ", feedback_score[i], "%")
-            print(feedback_sentence_ALL[i])
+            print(feedback_sentence_M[i], feedback_sentence_D[i])
             print("\n")
 
         return JsonResponse({'similarity': round(similarity_ALL,2),
                              '1st_similarity': feedback_score[0],
                              '1st_time': feedback_time[0],
-                             '1st_sentence': feedback_sentence_ALL[0],
+                             '1st_sentence_M': feedback_sentence_M[0],
+                             '1st_sentence_D': feedback_sentence_D[0],
                              '2nd_similarity': feedback_score[1],
                              '2nd_time': feedback_time[1],
-                             '2nd_sentence': feedback_sentence_ALL[1],
+                             '2nd_sentence_M': feedback_sentence_M[1],
+                             '2nd_sentence_D': feedback_sentence_D[1],
                              '3rd_similarity': feedback_score[2],
                              '3rd_time': feedback_time[2],
-                             '3rd_sentence': feedback_sentence_ALL[2]
+                             '3rd_sentence_M': feedback_sentence_M[2],
+                             '3rd_sentence_D': feedback_sentence_D[2]
                              })
 
     return JsonResponse({'error': 'Invalid request method'}, status=400)
