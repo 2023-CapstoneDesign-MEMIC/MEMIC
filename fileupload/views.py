@@ -11,21 +11,21 @@ import os
 from django.contrib import messages
 from wsgiref.util import FileWrapper
 from django.core.files.storage import default_storage
-from django.http import HttpResponse
 #from storages.backends.s3boto3 import S3Boto3Storage
 import json
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import boto3
+import uuid
 from botocore.exceptions import NoCredentialsError
 
 def upload_to_s3(local_file_path, s3_file_path):
     """
     Uploads a file to an S3 bucket
     """
-    access_key = '' # secret.json
-    secret_key = ''
+    access_key = 'AKIAV6WWBT6WIZLTLHMJ'
+    secret_key = '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'
     bucket_name = 'memicbucket'
 
     # Create an S3 client
@@ -80,6 +80,7 @@ def youtube(request):
         end = request.POST['end']
         video = YouTube(link)
 
+        uu = uuid.uuid4()
         # downloading video -> wav
         audio = video.streams.filter(only_audio=True).first()
         downloaded_file = audio.download()
@@ -110,7 +111,7 @@ def youtube(request):
             pass
 
         #s3_file_path = 'MyFile/' + os.path.basename(new_file)
-        s3_file_path = 'MyFile/sourceVocal.wav'
+        s3_file_path = 'MyFile/' + str(uu) + 'sourceVocal.wav'
         print('기다려주세요.')
 
         nsfile_withoutEx = os.path.splitext(nsfile_name)[0]
@@ -119,8 +120,11 @@ def youtube(request):
         seperator = Separator('spleeter:2stems')
         seperator.separate_to_file(nsfile_name, os.getcwd() + '/output')
         upload_to_s3(os.getcwd() + '/output/' + nsfile_withoutEx + '/vocals.wav', s3_file_path)
+
+
         # converting wav -> mp3
         # returning HTML page
-        return render(request, 'youtube.html')
+        return JsonResponse({'message': 'Upload Successful', 'uuid': str(uu)})
+        #return render(request, 'youtube.html')
 
-    return render(request, 'youtube.html')
+    return JsonResponse({'error': 'Invalid request method'}, status=400)

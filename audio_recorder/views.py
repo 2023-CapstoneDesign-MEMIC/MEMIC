@@ -24,17 +24,18 @@ class AudioFileCreateViewMixin(View):
     def post(self, request, *args, **kwargs):
         if request.method == 'POST':
             audio_file = request.FILES.get('audio_file', None)
+            uuid = request.POST['uuid']
 
             # Your S3 configuration
             access_key = ''
             secret_key = ''
             bucket_name = 'memicbucket'
-            s3_file_path = 'RecordingFile/' + audio_file.name
+            s3_file_path = 'RecordingFile/' + uuid + 'userVocal.wav'
 
             # Upload file to S3
             s3 = boto3.client('s3', aws_access_key_id=access_key, aws_secret_access_key=secret_key)
             s3.upload_fileobj(BytesIO(audio_file.read()), bucket_name, s3_file_path)
 
-            return JsonResponse({'message': 'Upload Successful', 's3_file_path': s3_file_path})
+            return JsonResponse({'message': 'Upload Successful', 's3_file_path': s3_file_path, 'uuid': uuid})
 
         return JsonResponse({'error': 'Invalid request method'}, status=400)

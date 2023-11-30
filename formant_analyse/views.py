@@ -1,5 +1,7 @@
 from django.http import JsonResponse
 import librosa
+import boto3
+import os
 import librosa.display
 from fastdtw import fastdtw
 import pandas as pd
@@ -222,9 +224,29 @@ def feedback(sV, uV, sF0, uF0):
 
 # 메인 함수
 def FormantAnalys(request):
-    if request.method == 'GET':
+    if request.method == 'POST':
+        uuid = request.POST['uuid']
+        # AWS 인증
+        s3 = boto3.client(
+            's3',
+            aws_access_key_id='AKIAV6WWBT6WIZLTLHMJ',
+            aws_secret_access_key='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'
+        )
+
+        # S3 버킷과 키
+        bucket_name = 'memicbucket'  # 버킷 이름
+        object_key = 'MyFile/' + uuid + 'sourceVocal.wav'  # S3 객체의 키
+        object_key2 = 'MyFile/' + uuid + 'userVocal.wav'  # S3 객체의 키
+        # # S3 객체 URL 가져오기
+        # sourceURL = s3.generate_presigned_url('get_object', Params={'Bucket': bucket_name, 'Key': object_key})
+        # userURL = s3.generate_presigned_url('get_object', Params={'Bucket': bucket_name, 'Key': object_key2})
+
+        s3.download_files(bucket_name, object_key, 'sourceVocal.wav')
+        s3.download_files(bucket_name, object_key2, 'userVocal.wav')
+
         audio_file1 = 'sourceVocal.wav'
         audio_file2 = 'userVocal.wav'
+
         y1, sr1 = librosa.load(audio_file1)
         y2, sr2 = librosa.load(audio_file2)
 
@@ -335,6 +357,8 @@ def FormantAnalys(request):
             print(feedback_sentence_ALL[i])
             print("\n")
 
+        os.remove('sourceVocal.wav')
+        os.remove('userVocal.wav')
         return JsonResponse({'similarity': round(similarity_ALL,2),
                              '1st_similarity': feedback_score[0],
                              '1st_time': feedback_time[0],
