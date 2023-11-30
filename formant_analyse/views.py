@@ -31,7 +31,7 @@ def compute_similarity(y1, sr1, y2, sr2):
     cosine_sim = cosine_similarity(mfcc1, mfcc2)
 
     # 유클리드 거리 계산
-    euclidean_dist = np.linalg.norm(mfcc1 - mfcc2)
+    #euclidean_dist = np.linalg.norm(mfcc1 - mfcc2)
 
     # DTW 거리를 비교 데이터 길이에 따라 정규화하여 백분율로 표시
     max_length = max(len(mfcc1), len(mfcc2))
@@ -43,12 +43,12 @@ def compute_similarity(y1, sr1, y2, sr2):
 
     # 유클리드 거리를 최대 길이에 대한 비율로 정규화하여 백분율로 표시
     max_euclidean_dist = max_length * max_length
-    normalized_euclidean_distance = (1 - euclidean_dist / max_euclidean_dist) * 100
+    #normalized_euclidean_distance = (1 - euclidean_dist / max_euclidean_dist) * 100
 
     # 유클리드 거리와 코사인 유사도를 가중 평균하여 종합적인 유사성을 백분율로 표시
     alpha = 0.5  # 가중치 (0에서 1 사이의 값)
-    combined_similarity_percent = (alpha * normalized_euclidean_distance + (1 - alpha) * cosine_similarity_percent)
-
+    #combined_similarity_percent = (alpha * normalized_euclidean_distance + (1 - alpha) * cosine_similarity_percent)
+    combined_similarity_percent = cosine_similarity_percent
     return dtwDist, dtwSeq, combined_similarity_percent, cosine_similarity_percent
 
 def l2m(l):
@@ -226,6 +226,7 @@ def FormantAnalys(request):
     if request.method == 'GET':
         audio_file1 = 'sourceVocal.wav'
         audio_file2 = 'userVocal.wav'
+
         y1, sr1 = librosa.load(audio_file1)
         y2, sr2 = librosa.load(audio_file2)
 
