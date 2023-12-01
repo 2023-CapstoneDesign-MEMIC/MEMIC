@@ -324,7 +324,7 @@ def FormantAnalys(request):
         feedback_sentence_M = []
         feedback_sentence_D = []
         for i in range(3):
-            feedback_time.append(round(poor.iloc[i]["sTimes"], 2))
+            feedback_time.append([round(poor.iloc[i]["sTimes"], 2), round(poor.iloc[i]["uTimes"], 2)])
             feedback_score.append(round(poor.iloc[i]["score"], 2))
             feedback_sentence, detail_sentence = feedback(sourceVowel[i], userVowel[i], sourceF0[i], userF0[i])
             feedback_sentence_M.append(feedback_sentence)
@@ -341,15 +341,18 @@ def FormantAnalys(request):
 
         return JsonResponse({'similarity': round(similarity_ALL,2),
                              '1st_similarity': feedback_score[0],
-                             '1st_time': feedback_time[0],
+                             '1st_time_source': feedback_time[0][0],
+                             '1st_time_user': feedback_time[0][1],
                              '1st_sentence_M': feedback_sentence_M[0],
                              '1st_sentence_D': feedback_sentence_D[0],
                              '2nd_similarity': feedback_score[1],
-                             '2nd_time': feedback_time[1],
+                             '2nd_time_source': feedback_time[1][0],
+                             '2nd_time_user': feedback_time[1][1],
                              '2nd_sentence_M': feedback_sentence_M[1],
                              '2nd_sentence_D': feedback_sentence_D[1],
                              '3rd_similarity': feedback_score[2],
-                             '3rd_time': feedback_time[2],
+                             '3rd_time_source': feedback_time[2][0],
+                             '3rd_time_user': feedback_time[2][1],
                              '3rd_sentence_M': feedback_sentence_M[2],
                              '3rd_sentence_D': feedback_sentence_D[2]
                              })
