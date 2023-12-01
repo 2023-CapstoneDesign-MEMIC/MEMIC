@@ -1,5 +1,5 @@
-#from spleeter.separator import Separator
-#from spleeter.audio.adapter import AudioAdapter
+from spleeter.separator import Separator
+from spleeter.audio.adapter import AudioAdapter
 from django.shortcuts import render, redirect, HttpResponse
 from .forms import FileUploadForm
 from .models import FileUpload
@@ -108,8 +108,8 @@ def youtube(request):
         nsfile_withoutEx = os.path.splitext(nsfile_name)[0]
         print(nsfile_withoutEx)
 
-        #seperator = Separator('spleeter:2stems')
-        #seperator.separate_to_file(nsfile_name, os.getcwd() + '/output')
+        seperator = Separator('spleeter:2stems')
+        seperator.separate_to_file(nsfile_name, os.getcwd() + '/output')
         directory = os.getcwd()
         shutil.move(directory + '/output/'+nsfile_withoutEx+'/vocals.wav', os.getcwd() + '/sourceVocal.wav')
         os.remove(directory + '/' + nsfile_name)
